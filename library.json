@@ -1,0 +1,14 @@
+{
+  "name": "ESPNowDMX",
+  "version": "1.0.0",
+  "description": "ESP-NOW DMX library with Sender and Receiver classes, adaptive rate, compression, chunking",
+  "keywords": "esp32,esp-now,dmx,lighting",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hemisphere-Project/ESPNowDMX.git"
+  },
+  "authors": [{"name": "maigre", "maintainer": true, "url": "https://www.hemisphere-project.com"}],
+  "license": "GPL-3.0",
+  "frameworks": "arduino",
+  "platforms": ["espressif32"]
+}
