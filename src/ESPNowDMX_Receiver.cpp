@@ -1,3 +1,20 @@
+/*
+ * ESPNowDMX - DMX over ESP-NOW for ESP32
+ * Copyright (c) 2025 maigre, Hemisphere-Project
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "ESPNowDMX_Receiver.h"
 
@@ -47,6 +64,7 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
   uint8_t universe = data[1];
   uint16_t seq = (data[2] << 8) | data[3];
   uint16_t offset = (data[4] << 8) | data[5];
+  uint8_t compressionType = data[6];
   const uint8_t *payload = data + PACKET_HEADER_SIZE;
   size_t payloadLen = len - PACKET_HEADER_SIZE;
 
@@ -56,7 +74,28 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
   if (seqDiff <= 0 && lastSequence != 0) return;  // Reject old/duplicate packets
   lastSequence = seq;
 
-  size_t decompressedLen = decompressData(payload, payloadLen, dmxBuffer + offset, DMX_UNIVERSE_SIZE - offset);
+  // Decompress or copy raw data based on compression flag
+  size_t decompressedLen = 0;
+  if (compressionType == COMPRESSION_HEATSHRINK) {
+    // Decompress heatshrink data
+    decompressedLen = decompressData(payload, payloadLen, dmxBuffer + offset, DMX_UNIVERSE_SIZE - offset);
+    if (decompressedLen == 0) {
+      // Decompression failed, discard packet
+      return;
+    }
+  } else if (compressionType == COMPRESSION_NONE) {
+    // Raw uncompressed data
+    if (offset + payloadLen <= DMX_UNIVERSE_SIZE) {
+      memcpy(dmxBuffer + offset, payload, payloadLen);
+      decompressedLen = payloadLen;
+    } else {
+      // Invalid offset/length
+      return;
+    }
+  } else {
+    // Unknown compression type, discard
+    return;
+  }
 
   if (userCallback) {
     userCallback(universe, dmxBuffer);

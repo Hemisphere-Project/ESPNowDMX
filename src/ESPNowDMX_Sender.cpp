@@ -1,3 +1,20 @@
+/*
+ * ESPNowDMX - DMX over ESP-NOW for ESP32
+ * Copyright (c) 2025 maigre, Hemisphere-Project
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "ESPNowDMX_Sender.h"
 
@@ -69,22 +86,32 @@ void ESPNowDMX_Sender::run() {
 
 void ESPNowDMX_Sender::sendChunk(uint16_t offset, uint16_t length) {
   uint8_t packet[ESP_NOW_MAX_PAYLOAD];
+  uint8_t compBuffer[ESP_NOW_MAX_PAYLOAD - PACKET_HEADER_SIZE];
 
   packet[0] = PACKET_TYPE_DATA_CHUNK;
-  packet[1] = 0;
+  packet[1] = 0; // universe
   packet[2] = (seqNumber >> 8) & 0xFF;
   packet[3] = seqNumber & 0xFF;
   packet[4] = (offset >> 8) & 0xFF;
   packet[5] = offset & 0xFF;
 
-  size_t compressedSize = compressData(currentUniverse + offset, length, packet + PACKET_HEADER_SIZE, ESP_NOW_MAX_PAYLOAD - PACKET_HEADER_SIZE);
-  if (compressedSize == 0) {
-    compressedSize = length;
+  // Try heatshrink compression
+  size_t compressedSize = compressData(currentUniverse + offset, length, compBuffer, sizeof(compBuffer));
+  
+  size_t payloadSize;
+  if (compressedSize > 0 && compressedSize < length) {
+    // Compression was beneficial, use it
+    packet[6] = COMPRESSION_HEATSHRINK;
+    memcpy(packet + PACKET_HEADER_SIZE, compBuffer, compressedSize);
+    payloadSize = compressedSize;
+  } else {
+    // Compression not beneficial or failed, send raw
+    packet[6] = COMPRESSION_NONE;
     memcpy(packet + PACKET_HEADER_SIZE, currentUniverse + offset, length);
+    payloadSize = length;
   }
 
-  size_t sendLength = PACKET_HEADER_SIZE + compressedSize;
-
+  size_t sendLength = PACKET_HEADER_SIZE + payloadSize;
   esp_now_send(nullptr, packet, sendLength);
 
   seqNumber++;
