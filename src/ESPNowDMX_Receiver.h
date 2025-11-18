@@ -41,5 +41,10 @@ private:
   void processPacket(const uint8_t *data, int len);
 
   static ESPNowDMX_Receiver* instance;
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  static void onDataReceived(const esp_now_recv_info_t *info, const uint8_t *data, int len);
+#else
   static void onDataReceived(const uint8_t *mac, const uint8_t *data, int len);
+#endif
 };

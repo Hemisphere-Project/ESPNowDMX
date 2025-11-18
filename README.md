@@ -30,6 +30,25 @@ lib_deps =
 
 ## Usage
 
+### Quick Wrapper
+`ESPNowDMX` bundles the sender/receiver helpers and lets you configure the universe ID before initialization:
+
+```cpp
+#include "ESPNowDMX.h"
+
+ESPNowDMX dmx;
+
+void setup() {
+    dmx.setUniverseId(3);      // optional, defaults to 0 on both ends
+    dmx.begin(ESPNOW_DMX_MODE_SENDER);
+}
+
+void loop() {
+    dmx.setChannel(1, 255);
+    dmx.loop();
+}
+```
+
 ### Standalone Mode (Default)
 The library handles ESP-NOW initialization internally:
 
@@ -86,6 +105,7 @@ void setup() {
 - `address`: DMX channel number (1-512, inclusive)
 - `value`: DMX value (0-255)
 - Recommended flow: push a complete frame with `setUniverse()` first so receivers have a baseline, then issue incremental `setChannel()` updates.
+- Sender and receiver default to universe 0. If you change universes, call `setUniverseId()` on both devices before `begin()` (or immediately after).
 
 **`void loop()`**
 - Call frequently in `loop()` to send adaptive updates
@@ -109,7 +129,7 @@ void setup() {
 ## Examples
 
 ### SenderExample
-Demonstrates both DMX sending methods:
+Demonstrates both DMX sending methods with explicit universe seeding:
 - **Mode 1** (default): Seed a universe once with `setUniverse()`, then animate individual channels via `setChannel()` (RGB fade)
 - **Mode 2**: Bulk universe update with `setUniverse()` - channel sweep
 
@@ -117,9 +137,6 @@ Switch modes by editing the `#define` at the top of the sketch.
 
 ### ReceiverExample  
 Basic DMX receiver that prints received values to serial.
-
-### ReceiverExternalESPNow
-Advanced example showing integration with existing ESP-NOW projects.
 
 See `examples/` folder for complete code.
 

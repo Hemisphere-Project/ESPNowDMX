@@ -40,5 +40,9 @@ private:
 
   void sendChunk(uint16_t offset, uint16_t length);
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  static void onDataSent(const wifi_tx_info_t *info, esp_now_send_status_t status);
+#else
   static void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+#endif
 };

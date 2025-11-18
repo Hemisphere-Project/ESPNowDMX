@@ -136,6 +136,16 @@ void ESPNowDMX_Sender::sendChunk(uint16_t offset, uint16_t length) {
   seqNumber++;
 }
 
-void ESPNowDMX_Sender::onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+void ESPNowDMX_Sender::onDataSent(const wifi_tx_info_t *info, esp_now_send_status_t status) {
+  (void)info;
+  (void)status;
   // Optional callback for send status
 }
+#else
+void ESPNowDMX_Sender::onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  (void)mac_addr;
+  (void)status;
+  // Optional callback for send status
+}
+#endif

@@ -19,8 +19,11 @@
 #pragma once
 
 #include "ESPNowDMX_Common.h"
+
+extern "C" {
 #include "heatshrink/heatshrink_encoder.h"
 #include "heatshrink/heatshrink_decoder.h"
+}
 
 // Heatshrink compression with automatic fallback to raw if not beneficial
 // Returns compressed size, or 0 on error

@@ -78,6 +78,10 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
     return;
   }
 
+  if (offset >= DMX_UNIVERSE_SIZE) {
+    return;
+  }
+
   if (hasLastSequence) {
     uint16_t diff = seq - lastSequence;
     if (diff == 0) {
@@ -95,20 +99,21 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
   size_t decompressedLen = 0;
   if (compressionType == COMPRESSION_HEATSHRINK) {
     // Decompress heatshrink data
-    decompressedLen = decompressData(payload, payloadLen, dmxBuffer + offset, DMX_UNIVERSE_SIZE - offset);
+    size_t maxWritable = DMX_UNIVERSE_SIZE - offset;
+    decompressedLen = decompressData(payload, payloadLen, dmxBuffer + offset, maxWritable);
     if (decompressedLen == 0) {
       // Decompression failed, discard packet
       return;
     }
   } else if (compressionType == COMPRESSION_NONE) {
     // Raw uncompressed data
-    if (offset + payloadLen <= DMX_UNIVERSE_SIZE) {
-      memcpy(dmxBuffer + offset, payload, payloadLen);
-      decompressedLen = payloadLen;
-    } else {
+    size_t maxWritable = DMX_UNIVERSE_SIZE - offset;
+    if (payloadLen > maxWritable) {
       // Invalid offset/length
       return;
     }
+    memcpy(dmxBuffer + offset, payload, payloadLen);
+    decompressedLen = payloadLen;
   } else {
     // Unknown compression type, discard
     return;
@@ -119,8 +124,17 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
   }
 }
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+void ESPNowDMX_Receiver::onDataReceived(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+  const uint8_t* src = (info && info->src_addr) ? info->src_addr : nullptr;
+  if (instance) {
+    instance->handleReceive(src, data, len);
+  }
+}
+#else
 void ESPNowDMX_Receiver::onDataReceived(const uint8_t *mac, const uint8_t *data, int len) {
   if (instance) {
     instance->handleReceive(mac, data, len);
   }
 }
+#endif
