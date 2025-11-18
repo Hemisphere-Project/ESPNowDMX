@@ -51,7 +51,13 @@ void ESPNowDMX_Sender::setUniverse(const uint8_t* dmxData) {
   memcpy(currentUniverse, dmxData, DMX_UNIVERSE_SIZE);
 }
 
-void ESPNowDMX_Sender::run() {
+void ESPNowDMX_Sender::setChannel(uint16_t address, uint8_t value) {
+  if (address < DMX_UNIVERSE_SIZE) {
+    currentUniverse[address] = value;
+  }
+}
+
+void ESPNowDMX_Sender::loop() {
   unsigned long now = millis();
   const unsigned long rapidInterval = 33;
   const unsigned long slowInterval = 100;

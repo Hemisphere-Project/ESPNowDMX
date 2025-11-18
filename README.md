@@ -79,9 +79,14 @@ void setup() {
 - Returns `true` on success
 
 **`void setUniverse(const uint8_t* dmxData)`**
-- Update the DMX universe buffer (512 bytes)
+- Update the entire DMX universe buffer (512 bytes)
 
-**`void run()`**
+**`void setChannel(uint16_t address, uint8_t value)`**
+- Set a specific DMX channel value
+- `address`: DMX channel address (0-511)
+- `value`: DMX value (0-255)
+
+**`void loop()`**
 - Call frequently in `loop()` to send adaptive updates
 
 ### ESPNowDMX_Receiver
@@ -103,7 +108,11 @@ void setup() {
 ## Examples
 
 ### SenderExample
-Basic DMX sender that cycles values on channels 30-45.
+Demonstrates both DMX sending methods:
+- **Mode 1** (default): Individual channel control with `setChannel()` - RGB fade
+- **Mode 2**: Bulk universe update with `setUniverse()` - channel sweep
+
+Switch modes by editing the `#define` at the top of the sketch.
 
 ### ReceiverExample  
 Basic DMX receiver that prints received values to serial.

@@ -26,7 +26,8 @@ public:
   ESPNowDMX_Sender();
   bool begin(bool registerInternalEspNow = true);
   void setUniverse(const uint8_t* dmxData);
-  void run();
+  void setChannel(uint16_t address, uint8_t value);
+  void loop();
 
 private:
   uint8_t currentUniverse[DMX_UNIVERSE_SIZE];
