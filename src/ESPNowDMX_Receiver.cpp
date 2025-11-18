@@ -21,14 +21,16 @@
 ESPNowDMX_Receiver* ESPNowDMX_Receiver::instance = nullptr;
 
 ESPNowDMX_Receiver::ESPNowDMX_Receiver()
-  : lastSequence(0), userCallback(nullptr), espNowInitialized(false) {
+  : lastSequence(0), hasLastSequence(false), userCallback(nullptr), espNowInitialized(false), universeId(0) {
   memset(dmxBuffer, 0, DMX_UNIVERSE_SIZE);
   instance = this;
 }
 
 bool ESPNowDMX_Receiver::begin(bool registerInternalEspNow) {
+  hasLastSequence = false;
+  lastSequence = 0;
   WiFi.mode(WIFI_STA);
-  if (registerInternalEspNow) {
+  if (registerInternalEspNow && !espNowInitialized) {
     if (esp_now_init() != ESP_OK) {
       return false;
     }
@@ -53,6 +55,10 @@ void ESPNowDMX_Receiver::setDMXReceiveCallback(DMXReceiveCallback cb) {
   userCallback = cb;
 }
 
+void ESPNowDMX_Receiver::setUniverseId(uint8_t universe) {
+  universeId = universe;
+}
+
 bool ESPNowDMX_Receiver::handleReceive(const uint8_t *mac, const uint8_t *data, int len) {
   if (len < PACKET_HEADER_SIZE) return false;
   if (data[0] != PACKET_TYPE_DATA_CHUNK) return false;
@@ -68,10 +74,21 @@ void ESPNowDMX_Receiver::processPacket(const uint8_t *data, int len) {
   const uint8_t *payload = data + PACKET_HEADER_SIZE;
   size_t payloadLen = len - PACKET_HEADER_SIZE;
 
-  // Handle sequence number wrap-around (16-bit counter wraps from 65535 to 0)
-  // Accept packet if: new seq > last seq OR seq wrapped around (big backward jump)
-  int16_t seqDiff = (int16_t)(seq - lastSequence);
-  if (seqDiff <= 0 && lastSequence != 0) return;  // Reject old/duplicate packets
+  if (universe != universeId) {
+    return;
+  }
+
+  if (hasLastSequence) {
+    uint16_t diff = seq - lastSequence;
+    if (diff == 0) {
+      return; // duplicate packet
+    }
+    if (diff > 0x8000) {
+      return; // older packet
+    }
+  } else {
+    hasLastSequence = true;
+  }
   lastSequence = seq;
 
   // Decompress or copy raw data based on compression flag

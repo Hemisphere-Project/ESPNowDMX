@@ -26,6 +26,7 @@ public:
   ESPNowDMX_Sender();
   bool begin(bool registerInternalEspNow = true);
   void setUniverse(const uint8_t* dmxData);
+  void setUniverseId(uint8_t universe);
   void setChannel(uint16_t address, uint8_t value);
   void loop();
 
@@ -35,6 +36,7 @@ private:
   uint16_t seqNumber;
   unsigned long lastSendTime;
   bool espNowInitialized;
+  uint8_t universeId;
 
   void sendChunk(uint16_t offset, uint16_t length);
 

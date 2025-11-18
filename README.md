@@ -83,8 +83,9 @@ void setup() {
 
 **`void setChannel(uint16_t address, uint8_t value)`**
 - Set a specific DMX channel value
-- `address`: DMX channel address (0-511)
+- `address`: DMX channel number (1-512, inclusive)
 - `value`: DMX value (0-255)
+- Recommended flow: push a complete frame with `setUniverse()` first so receivers have a baseline, then issue incremental `setChannel()` updates.
 
 **`void loop()`**
 - Call frequently in `loop()` to send adaptive updates
@@ -109,7 +110,7 @@ void setup() {
 
 ### SenderExample
 Demonstrates both DMX sending methods:
-- **Mode 1** (default): Individual channel control with `setChannel()` - RGB fade
+- **Mode 1** (default): Seed a universe once with `setUniverse()`, then animate individual channels via `setChannel()` (RGB fade)
 - **Mode 2**: Bulk universe update with `setUniverse()` - channel sweep
 
 Switch modes by editing the `#define` at the top of the sketch.

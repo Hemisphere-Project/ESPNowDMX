@@ -19,14 +19,14 @@
 #include "ESPNowDMX_Sender.h"
 
 ESPNowDMX_Sender::ESPNowDMX_Sender()
-  : seqNumber(0), lastSendTime(0), espNowInitialized(false) {
+  : seqNumber(0), lastSendTime(0), espNowInitialized(false), universeId(0) {
   memset(currentUniverse, 0, DMX_UNIVERSE_SIZE);
   memset(prevUniverse, 0, DMX_UNIVERSE_SIZE);
 }
 
 bool ESPNowDMX_Sender::begin(bool registerInternalEspNow) {
   WiFi.mode(WIFI_STA);
-  if (registerInternalEspNow) {
+  if (registerInternalEspNow && !espNowInitialized) {
     if (esp_now_init() != ESP_OK) {
       return false;
     }
@@ -51,10 +51,15 @@ void ESPNowDMX_Sender::setUniverse(const uint8_t* dmxData) {
   memcpy(currentUniverse, dmxData, DMX_UNIVERSE_SIZE);
 }
 
+void ESPNowDMX_Sender::setUniverseId(uint8_t universe) {
+  universeId = universe;
+}
+
 void ESPNowDMX_Sender::setChannel(uint16_t address, uint8_t value) {
-  if (address < DMX_UNIVERSE_SIZE) {
-    currentUniverse[address] = value;
+  if (address == 0 || address > DMX_UNIVERSE_SIZE) {
+    return;
   }
+  currentUniverse[address - 1] = value;
 }
 
 void ESPNowDMX_Sender::loop() {
@@ -83,11 +88,19 @@ void ESPNowDMX_Sender::loop() {
 
   lastSendTime = now;
 
-  uint16_t chunkLen = maxChanged - minChanged + 1;
+  uint16_t totalLen = maxChanged - minChanged + 1;
+  uint16_t processed = 0;
 
-  sendChunk(minChanged, chunkLen);
+  while (processed < totalLen) {
+    uint16_t remaining = totalLen - processed;
+    uint16_t chunkLen = remaining > MAX_DMX_CHUNK_SIZE ? MAX_DMX_CHUNK_SIZE : remaining;
+    uint16_t chunkOffset = minChanged + processed;
 
-  memcpy(prevUniverse + minChanged, currentUniverse + minChanged, chunkLen);
+    sendChunk(chunkOffset, chunkLen);
+
+    memcpy(prevUniverse + chunkOffset, currentUniverse + chunkOffset, chunkLen);
+    processed += chunkLen;
+  }
 }
 
 void ESPNowDMX_Sender::sendChunk(uint16_t offset, uint16_t length) {
@@ -95,7 +108,7 @@ void ESPNowDMX_Sender::sendChunk(uint16_t offset, uint16_t length) {
   uint8_t compBuffer[ESP_NOW_MAX_PAYLOAD - PACKET_HEADER_SIZE];
 
   packet[0] = PACKET_TYPE_DATA_CHUNK;
-  packet[1] = 0; // universe
+  packet[1] = universeId;
   packet[2] = (seqNumber >> 8) & 0xFF;
   packet[3] = seqNumber & 0xFF;
   packet[4] = (offset >> 8) & 0xFF;

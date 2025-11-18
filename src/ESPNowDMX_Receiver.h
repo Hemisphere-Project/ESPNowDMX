@@ -27,13 +27,16 @@ public:
   bool begin(bool registerInternalEspNow = true);
 
   void setDMXReceiveCallback(DMXReceiveCallback cb);
+  void setUniverseId(uint8_t universe);
   bool handleReceive(const uint8_t *mac, const uint8_t *data, int len);
 
 private:
   uint8_t dmxBuffer[DMX_UNIVERSE_SIZE];
   uint16_t lastSequence;
+  bool hasLastSequence;
   DMXReceiveCallback userCallback;
   bool espNowInitialized;
+  uint8_t universeId;
 
   void processPacket(const uint8_t *data, int len);
 

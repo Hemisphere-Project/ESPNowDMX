@@ -26,6 +26,9 @@ void setup() {
 
 #ifdef MODE_SETCHANNEL
   Serial.println("ESPNowDMX Sender - Individual Channel Control (RGB Fade)");
+  // Push a full frame once so receivers latch a known baseline
+  uint8_t initialUniverse[DMX_UNIVERSE_SIZE] = {0};
+  sender.setUniverse(initialUniverse);
 #else
   Serial.println("ESPNowDMX Sender - Universe Update (Channel Sweep)");
   uint8_t dmxInit[512] = {0};
@@ -40,8 +43,8 @@ void loop() {
     lastUpdate = millis();
 
 #ifdef MODE_SETCHANNEL
-    // Example 1: Individual channel control
-    // Create smooth RGB fade using setChannel()
+  // Example 1: Individual channel control
+  // After seeding the frame with setUniverse(), keep updating individual channels
     static float phase = 0;
     phase += 0.05;
     
@@ -60,7 +63,7 @@ void loop() {
 
     uint8_t dmx[512] = {0};
     for (int i = DMX_START_CHANNEL; i < DMX_START_CHANNEL + DMX_NUM_CHANNELS; i++) {
-      dmx[i] = value;
+      dmx[i - 1] = value;
     }
     sender.setUniverse(dmx);
 #endif
