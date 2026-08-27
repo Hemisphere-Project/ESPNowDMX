@@ -95,15 +95,39 @@ void ESPNowDMX::setDMXReceiveCallback(DMXReceiveCallback cb) {
   setReceiveCallback(cb);
 }
 
-bool ESPNowDMX::handleIncoming(const uint8_t* mac, const uint8_t* data, int len) {
+bool ESPNowDMX::handleIncoming(const uint8_t* mac, const uint8_t* data, int len, int8_t rssi) {
   if (!_initialized || _mode != ESPNOW_DMX_MODE_RECEIVER) {
     return false;
   }
-  return _receiver.handleReceive(mac, data, len);
+  return _receiver.handleReceive(mac, data, len, rssi);
 }
 
-void ESPNowDMX::forwardPacket(const uint8_t* mac, const uint8_t* data, int len) {
+void ESPNowDMX::forwardPacket(const uint8_t* mac, const uint8_t* data, int len, int8_t rssi) {
   if (s_activeReceiver) {
-    s_activeReceiver->handleIncoming(mac, data, len);
+    s_activeReceiver->handleIncoming(mac, data, len, rssi);
   }
+}
+
+int8_t ESPNowDMX::getLastRssi() const {
+  return _mode == ESPNOW_DMX_MODE_RECEIVER ? _receiver.getLastRssi() : RSSI_UNKNOWN;
+}
+
+bool ESPNowDMX::addUnicastPeer(const uint8_t mac[6]) {
+  if (_mode != ESPNOW_DMX_MODE_SENDER) return false;
+  return _sender.addUnicastPeer(mac);
+}
+
+bool ESPNowDMX::removeUnicastPeer(const uint8_t mac[6]) {
+  if (_mode != ESPNOW_DMX_MODE_SENDER) return false;
+  return _sender.removeUnicastPeer(mac);
+}
+
+void ESPNowDMX::clearUnicastPeers() {
+  if (_mode == ESPNOW_DMX_MODE_SENDER) {
+    _sender.clearUnicastPeers();
+  }
+}
+
+uint8_t ESPNowDMX::getUnicastPeerCount() const {
+  return _mode == ESPNOW_DMX_MODE_SENDER ? _sender.getUnicastPeerCount() : 0;
 }
